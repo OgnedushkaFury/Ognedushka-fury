@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>ИГРА ОГНЕДУШКИ</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      touch-action: none;
+      -webkit-touch-callout: none;
+      -webkit-user-select: none;
+      user-select: none;
+    }
+    body {
+      overflow: hidden;
+      background: #000;
+      font-family: Arial, sans-serif;
+    }
+    #game {
+      position: relative;
+      width: 100vw;
+      height: 100vh;
+      background: url('https://i.ibb.co/XNGpDGN/bg.png') center/cover no-repeat fixed;
+      touch-action: none;
+    }
+    #dragon, .dragon {
+      position: absolute;
+      width: 80px;
+      height: 80px;
+      left: 50px;
+      z-index: 10;
+      image-rendering: pixelated;
+    }
+    #dragon { top: 50%; transform: translateY(-50%) scaleX(-1); }
+    .dragon { transform: translateY(-50%) scaleX(-1); }
+    
+    .cloud {
+      position: absolute;
+      width: 100px;
+      height: 60px;
+      background: url('https://i.ibb.co/3mtgYpJ7/cloud.png') center/contain no-repeat;
+      opacity: 0.8;
+      z-index: 1;
+    }
+    .obstacle {
+      position: absolute;
+      width: 60px;      height: 100px;
+      background: url('https://i.ibb.co/VcXtbQSB/obstacle.png') center/contain no-repeat;
+      z-index: 5;
+    }
+    .star {
+      position: absolute;
+      width: 40px;
+      height: 40px;
+      font-size: 36px;
+      text-align: center;
+      line-height: 40px;
+      z-index: 8;
+      animation: pulse 1s infinite alternate;
+      text-shadow: 0 0 10px gold, 0 0 20px gold;
+    }
+    @keyframes pulse {
+      from { transform: scale(1); opacity: 1; }
+      to { transform: scale(1.2); opacity: 0.9; }
+    }
+    #score, #starsCollected, #timer {
+      position: absolute;
+      top: 15px;
+      color: white;
+      font-size: 20px;
+      font-weight: bold;
+      text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
+      z-index: 20;
+    }
+    #score { left: 50%; transform: translateX(-50%); }
+    #starsCollected { left: 15px; }
+    #timer { right: 15px; font-size: 18px; }
+    
+    #startScreen, #gameOverScreen {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0,0,0,0.85);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      color: white;
+      z-index: 100;
+      text-align: center;
+      padding: 20px;
+    }
+    #gameOverScreen { display: none; }
+        #startScreen {
+      background: linear-gradient(rgba(0,0,0,0.6), rgba(0,0,0,0.8)), 
+                  url('https://i.ibb.co/F4c5JHGP/cover.png') center/cover no-repeat;
+    }
+    
+    #startScreen h1 {
+      font-size: 32px;
+      margin-bottom: 10px;
+      text-shadow: 0 0 20px #ff6b00, 0 0 40px #ff3300;
+      color: #fff;
+      letter-spacing: 2px;
+    }
+    
+    #startBtn {
+      margin-top: 30px;
+      padding: 18px 50px;
+      font-size: 24px;
+      font-weight: bold;
+      background: #4CAF50;
+      color: white;
+      border: 3px solid #2e7d32;
+      border-radius: 40px;
+      cursor: pointer;
+      box-shadow: 0 6px 20px rgba(76, 175, 80, 0.5);
+      transition: all 0.2s;
+    }
+    #startBtn:active {
+      transform: scale(0.95);
+      box-shadow: 0 3px 10px rgba(76, 175, 80, 0.3);
+    }
+    
+    #restartBtn {
+      margin-top: 20px;
+      padding: 15px 40px;
+      font-size: 20px;
+      background: #ff6b6b;
+      color: white;
+      border: none;
+      border-radius: 30px;
+      cursor: pointer;
+    }
+    
+    .hint {
+      margin-top: 15px;
+      font-size: 14px;
+      opacity: 0.9;
+      max-width: 300px;
+      line-height: 1.4;
+    }
+    .star-hint {      color: #ffd700;
+      margin-top: 8px;
+      font-size: 15px;
+    }
+  </style>
+</head>
+<body>
+  <div id="game">
+    <div id="score">Счёт: 0</div>
+    <div id="starsCollected">⭐ 0/5</div>
+    <div id="timer">Время: 0:00</div>
+    
+    <img id="dragon" src="https://i.ibb.co/bgF3P7TX/frame1.png" alt="Дракон">
+    
+    <div id="startScreen">
+      <h1>🔥 ИГРА ОГНЕДУШКИ 🔥</h1>
+      <p class="hint">Управляй драконом: тапай и тяни вверх/вниз</p>
+      <p class="star-hint">⭐ Собери минимум 5 звёзд за игру!</p>
+      <button id="startBtn">[ ИГРАТЬ ]</button>
+    </div>
+    
+    <div id="gameOverScreen">
+      <h1>💥 Игра окончена!</h1>
+      <p id="finalScore">Счёт: 0</p>
+      <p id="finalStars">⭐ Звёзды: 0/5</p>
+      <p id="winMsg" style="color:#4CAF50;font-weight:bold;display:none;">🎉 ПОБЕДА! Ты собрал все звёзды! 🎉</p>
+      <button id="restartBtn">Играть снова</button>
+    </div>
+  </div>
+
+  <script>
+    // === ИЗОБРАЖЕНИЯ ===
+    const dragonFrames = [
+      'https://i.ibb.co/bgF3P7TX/frame1.png',
+      'https://i.ibb.co/5WHk5cLq/frame2.png',
+      'https://i.ibb.co/LXtXgF6S/frame3.png'
+    ];
+    const cloudImg = 'https://i.ibb.co/3mtgYpJ7/cloud.png';
+    const obstacleImg = 'https://i.ibb.co/VcXtbQSB/obstacle.png';
+
+    // === ЭЛЕМЕНТЫ ===
+    const game = document.getElementById('game');
+    const mainDragon = document.getElementById('dragon');
+    const scoreEl = document.getElementById('score');
+    const starsEl = document.getElementById('starsCollected');
+    const timerEl = document.getElementById('timer');
+    const startScreen = document.getElementById('startScreen');
+    const gameOverScreen = document.getElementById('gameOverScreen');
+    const startBtn = document.getElementById('startBtn');
+    const restartBtn = document.getElementById('restartBtn');    const finalScoreEl = document.getElementById('finalScore');
+    const finalStarsEl = document.getElementById('finalStars');
+    const winMsg = document.getElementById('winMsg');
+
+    // === ПАРАМЕТРЫ ИГРЫ ===
+    let gameRunning = false;
+    let score = 0;
+    let gameTime = 0;
+    let starsCollected = 0;
+    const STARS_TO_WIN = 5;
+    
+    let dragonY = window.innerHeight / 2;
+    let frameIndex = 0;
+    
+    let dragons = [];
+    let obstacles = [];
+    let clouds = [];
+    let stars = [];
+    
+    let animationId;
+    let lastObstacleTime = 0;
+    let lastCloudTime = 0;
+    let lastStarTime = 0;
+    let lastTimeUpdate = 0;
+    
+    // === СЛОЖНОСТЬ ===
+    let baseSpeed = 4;
+    let obstacleSpeed = baseSpeed;
+    let spawnInterval = 2000;
+
+    function animateWings() {
+      if (!gameRunning) return;
+      frameIndex = (frameIndex + 1) % dragonFrames.length;
+      dragons.forEach(d => d.el.src = dragonFrames[frameIndex]);
+      setTimeout(animateWings, 150);
+    }
+
+    function updateDragonsCount() {
+      dragons.forEach((d, i) => {
+        if (i > 0 && d.el) d.el.remove();
+      });
+      dragons = [];
+      
+      dragons.push({ el: mainDragon, y: dragonY, id: 'main' });
+      mainDragon.style.top = dragonY + 'px';
+      
+      const extraDragons = Math.random() < 0.03 ? 2 : (Math.random() < 0.15 ? 1 : 0);
+      
+      for (let i = 0; i < extraDragons; i++) {
+        const d = document.createElement('img');        d.className = 'dragon';
+        d.src = dragonFrames[0];
+        d.style.left = (70 + i * 30) + 'px';
+        game.appendChild(d);
+        
+        const offsetY = (Math.random() - 0.5) * 100;
+        dragons.push({ 
+          el: d, 
+          y: Math.max(30, Math.min(window.innerHeight - 110, dragonY + offsetY)),
+          id: `extra${i}`
+        });
+        d.style.top = dragons[dragons.length-1].y + 'px';
+      }
+    }
+
+    function createCloud() {
+      const cloud = document.createElement('div');
+      cloud.className = 'cloud';
+      cloud.style.right = '-100px';
+      cloud.style.top = Math.random() * (window.innerHeight - 100) + 'px';
+      cloud.style.backgroundImage = `url('${cloudImg}')`;
+      game.appendChild(cloud);
+      clouds.push({ el: cloud, x: window.innerWidth, speed: 1 + Math.random() * 2 });
+    }
+
+    function createObstacle() {
+      const obstacle = document.createElement('div');
+      obstacle.className = 'obstacle';
+      obstacle.style.right = '-60px';
+      obstacle.style.top = Math.random() * (window.innerHeight - 150) + 50 + 'px';
+      obstacle.style.backgroundImage = `url('${obstacleImg}')`;
+      game.appendChild(obstacle);
+      obstacles.push({ 
+        el: obstacle, 
+        x: window.innerWidth, 
+        speed: obstacleSpeed,
+        width: 40,
+        height: 80 
+      });
+    }
+
+    function createStar() {
+      const star = document.createElement('div');
+      star.className = 'star';
+      star.textContent = '⭐';
+      star.style.right = '-40px';
+      star.style.top = Math.random() * (window.innerHeight - 200) + 100 + 'px';
+      game.appendChild(star);
+      stars.push({ 
+        el: star,         x: window.innerWidth, 
+        speed: obstacleSpeed * 0.9,
+        collected: false 
+      });
+    }
+
+    function updateClouds() {
+      clouds.forEach((cloud, index) => {
+        cloud.x -= cloud.speed;
+        cloud.el.style.right = (window.innerWidth - cloud.x) + 'px';
+        if (cloud.x < -100) {
+          cloud.el.remove();
+          clouds.splice(index, 1);
+        }
+      });
+    }
+
+    function updateObstacles() {
+      obstacles.forEach((obs, index) => {
+        obs.x -= obs.speed;
+        obs.el.style.right = (window.innerWidth - obs.x) + 'px';
+        
+        dragons.forEach(dragon => {
+          const dRect = dragon.el.getBoundingClientRect();
+          const oRect = obs.el.getBoundingClientRect();
+          const dHitbox = {
+            left: dRect.left + 20, right: dRect.right - 20,
+            top: dRect.top + 10, bottom: dRect.bottom - 10
+          };
+          
+          if (
+            dHitbox.left < oRect.right - 10 &&
+            dHitbox.right > oRect.left + 10 &&
+            dHitbox.top < oRect.bottom - 10 &&
+            dHitbox.bottom > oRect.top + 10
+          ) {
+            gameOver();
+          }
+        });
+        
+        if (obs.x < -60) {
+          obs.el.remove();
+          obstacles.splice(index, 1);
+          score += 10;
+          scoreEl.textContent = `Счёт: ${score}`;
+        }
+      });
+    }
+
+    function updateStars() {      stars.forEach((star, index) => {
+        if (star.collected) return;
+        
+        star.x -= star.speed;
+        star.el.style.right = (window.innerWidth - star.x) + 'px';
+        
+        dragons.forEach(dragon => {
+          const dRect = dragon.el.getBoundingClientRect();
+          const sRect = star.el.getBoundingClientRect();
+          
+          if (
+            dRect.left < sRect.right - 5 &&
+            dRect.right > sRect.left + 5 &&
+            dRect.top < sRect.bottom - 5 &&
+            dRect.bottom > sRect.top + 5
+          ) {
+            star.collected = true;
+            star.el.remove();
+            stars.splice(index, 1);
+            starsCollected++;
+            starsEl.textContent = `⭐ ${starsCollected}/${STARS_TO_WIN}`;
+          }
+        });
+        
+        if (star.x < -40 && !star.collected) {
+          star.el.remove();
+          stars.splice(index, 1);
+        }
+      });
+    }
+
+    function updateDifficulty(timestamp) {
+      if (timestamp - lastTimeUpdate >= 1000) {
+        gameTime++;
+        lastTimeUpdate = timestamp;
+        
+        const mins = Math.floor(gameTime / 60);
+        const secs = gameTime % 60;
+        timerEl.textContent = `Время: ${mins}:${secs < 10 ? '0' : ''}${secs}`;
+        
+        if (gameTime > 0 && gameTime % 20 === 0) {
+          obstacleSpeed += 1.2;
+          spawnInterval = Math.max(700, spawnInterval - 250);
+        }
+      }
+    }
+
+    function gameLoop(timestamp) {
+      if (!gameRunning) return;
+            updateDifficulty(timestamp);
+      
+      if (timestamp - lastObstacleTime > spawnInterval) {
+        createObstacle();
+        if (gameTime >= 60 && Math.random() > 0.8) {
+          setTimeout(createObstacle, 400);
+        }
+        lastObstacleTime = timestamp;
+      }
+      
+      if (timestamp - lastCloudTime > 800) {
+        createCloud();
+        lastCloudTime = timestamp;
+      }
+      
+      // ⭐ ИЗМЕНЕНО: каждые 15+ секунд (случайно 15-30 сек)
+      const starInterval = 15000 + Math.random() * 15000;
+      if (timestamp - lastStarTime > starInterval && starsCollected < STARS_TO_WIN + 2) {
+        createStar();
+        lastStarTime = timestamp;
+      }
+      
+      if (gameTime > 10 && gameTime % 15 === 0 && Math.random() < 0.2) {
+        updateDragonsCount();
+      }
+      
+      updateClouds();
+      updateObstacles();
+      updateStars();
+      
+      animationId = requestAnimationFrame(gameLoop);
+    }
+
+    function handleMove(clientY) {
+      if (!gameRunning) return;
+      const rect = game.getBoundingClientRect();
+      let newY = clientY - rect.top - mainDragon.offsetHeight / 2;
+      newY = Math.max(10, Math.min(window.innerHeight - mainDragon.offsetHeight - 10, newY));
+      dragonY = newY;
+      
+      dragons.forEach(d => {
+        if (d.id === 'main') {
+          d.y = dragonY;
+        } else {
+          d.y = Math.max(30, Math.min(window.innerHeight - 110, dragonY + (d.id === 'extra0' ? -40 : 40)));
+        }
+        d.el.style.top = d.y + 'px';
+      });
+    }
+    game.addEventListener('touchmove', (e) => {
+      e.preventDefault();
+      handleMove(e.touches[0].clientY);
+    }, { passive: false });
+
+    game.addEventListener('mousemove', (e) => {
+      if (e.buttons === 1) handleMove(e.clientY);
+    });
+
+    game.addEventListener('touchstart', (e) => {
+      handleMove(e.touches[0].clientY);
+    });
+
+    function startGame() {
+      gameRunning = true;
+      score = 0;
+      gameTime = 0;
+      starsCollected = 0;
+      baseSpeed = 4;
+      obstacleSpeed = baseSpeed;
+      spawnInterval = 2000;
+      
+      scoreEl.textContent = 'Счёт: 0';
+      starsEl.textContent = `⭐ 0/${STARS_TO_WIN}`;
+      timerEl.textContent = 'Время: 0:00';
+      winMsg.style.display = 'none';
+      
+      startScreen.style.display = 'none';
+      gameOverScreen.style.display = 'none';
+      
+      document.querySelectorAll('.cloud, .obstacle, .star, .dragon:not(#dragon)').forEach(el => el.remove());
+      clouds = [];
+      obstacles = [];
+      stars = [];
+      
+      dragonY = window.innerHeight / 2;
+      dragons = [];
+      updateDragonsCount();
+      
+      lastObstacleTime = 0;
+      lastCloudTime = 0;
+      lastStarTime = 0;
+      lastTimeUpdate = 0;
+      
+      animateWings();
+      requestAnimationFrame(gameLoop);
+    }
+
+    function gameOver() {
+      gameRunning = false;      cancelAnimationFrame(animationId);
+      
+      finalScoreEl.textContent = `Счёт: ${score}`;
+      finalStarsEl.textContent = `⭐ Звёзды: ${starsCollected}/${STARS_TO_WIN}`;
+      
+      if (starsCollected >= STARS_TO_WIN) {
+        winMsg.style.display = 'block';
+      }
+      
+      gameOverScreen.style.display = 'flex';
+    }
+
+    startBtn.addEventListener('click', startGame);
+    restartBtn.addEventListener('click', startGame);
+
+    window.addEventListener('resize', () => {
+      dragons.forEach(d => {
+        d.y = Math.min(d.y, window.innerHeight - mainDragon.offsetHeight - 10);
+        d.el.style.top = d.y + 'px';
+      });
+    });
+  </script>
+</body>
+</html>
